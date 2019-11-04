@@ -33,13 +33,18 @@ iris_with_missing = iris %>%
 
 ```{r}
 replaceNA = function(x){
+  
   if (class(x) == "numeric") {
     replace_na(x, mean(x, na.rm = TRUE))
   } else if (class(x) == "character") {
     replace_na(x, "virginica")
   }
-}
 
+}
+```
+
+
+```{r}
 output = map_df(iris_with_missing, replaceNA)
 ```
 
@@ -80,4 +85,60 @@ p2_df %>%
 ```
 
 *Comments:*
+
+# Problem 3
+
+```{r}
+generate_xy = function(beta_1, n, beta_0, sigma){
+  sim_data = tibble(
+    x = rnorm(n),
+    y = beta_0 + beta_1 * x + rnorm(n, 0, sigma)
+  )
+  return(sim_data)
+}
+```
+
+```{r}
+generate_df = function(beta_1, generate_xy, n = 30, beta_0 = 2, sigma = sqrt(50)){
+  
+  tibble(
+    truth = beta_1,
+    data = rerun(10, generate_xy(beta_1, n, beta_0, sigma)),
+    model = map(data, ~ broom::tidy(lm(y ~ x, data = .))),
+    estimate = map(model, ~ .x[2,2]),
+    p_value = map(model, ~ .x[2,5])
+  )  %>% 
+  unnest(estimate:p_value) %>% 
+  select(-model, p_value = p.value)
+  
+}
+```
+
+
+```{r}
+set.seed(1)
+
+df_1 = generate_df(beta_1 = 0, generate_xy)
+```
+
+```{r}
+beta_1 = list(1, 2, 3, 4, 5, 6)
+
+df_2 = 
+  map(beta_1, ~ generate_df(.x, generate_xy)) %>% 
+  bind_rows()
+```
+
+
+```{r}
+df_2 %>% 
+  group_by(truth) %>% 
+  mutate(
+    reject_prop = sum(p_value < 0.05) / length(p_value)
+  ) %>% 
+  ggplot(aes(x = truth, y = reject_prop, fill = truth)) +
+  geom_col() + 
+  xlab("True Value of Beta_1") +
+  ylab("Proportion of times the null was rejected")
+```
 
