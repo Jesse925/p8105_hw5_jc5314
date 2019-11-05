@@ -2,7 +2,10 @@
 title: "P8105 Homework 5"
 author: "Junxian Chen (jc5314)"
 date: "11/2/2019"
-output: github_document
+output: 
+  github_document:
+    pandoc_args: --webtex
+
 ---
 
 ```{r, include = FALSE}
@@ -18,6 +21,7 @@ knitr::opts_chunk$set(
 )
 theme_set(theme_gray(base_size = 10) + theme(legend.position = "bottom"))
 ```
+
 
 # Problem 1
 
@@ -98,17 +102,21 @@ p2_df %>%
 
 *Comments:* The data values of the experiment group were increasing along with time and the overall data values in experiment group were distinctly larger than the control group after 6 weeks.
 
+
 # Problem 3
 
 ```{r}
 generate_xy = function(beta_1, n, beta_0, sigma){
-  sim_data = tibble(
+  
+  tibble(
     x = rnorm(n),
     y = beta_0 + beta_1 * x + rnorm(n, 0, sigma)
   )
-  return(sim_data)
+  
 }
 ```
+
+Firstly, a function called `generate_xy` is created. This function will generate *n* pairs of (*x*, *y*), where *x*'s are random numbers following Normal distribution and *y*'s come from the given model in the question.
 
 ```{r}
 generate_df = function(beta_1, generate_xy, n = 30, beta_0 = 2, sigma = sqrt(50)){
@@ -126,12 +134,19 @@ generate_df = function(beta_1, generate_xy, n = 30, beta_0 = 2, sigma = sqrt(50)
 }
 ```
 
+Next, another function called `generate_df` is created. This function will generate 10000 datasets which contain 30 pairs of (*x*, *y*) in each. Then the generated *x* and *y* will be fitted to linear regression model and estimators of $\beta_1$ as well as p-values will be obtained. The estimators and p-values will be extracted and included in the dataset.
+
+(1) When $\beta_1$ = 0:
 
 ```{r}
 set.seed(1)
 
 df_1 = generate_df(beta_1 = 0, generate_xy)
+
+df_1
 ```
+
+(2) When $\beta_1$ = {1, 2, 3, 4, 5, 6}:
 
 ```{r}
 beta_1 = list(1, 2, 3, 4, 5, 6)
@@ -139,9 +154,11 @@ beta_1 = list(1, 2, 3, 4, 5, 6)
 df_2 = 
   map(beta_1, ~ generate_df(.x, generate_xy)) %>% 
   bind_rows()
+
+df_2
 ```
 
-* A plot showing the proportion of times the null was rejected (the power of the test) on the $y$ axis and the true value of $\beta_1$ on the $x$ axis.
+* A plot showing the proportion of times the null was rejected (the power of the test) on the *y* axis and the true value of $\beta_1$ on the *x* axis.
 
 ```{r}
 df_2 %>% 
@@ -149,32 +166,34 @@ df_2 %>%
   mutate(
     reject_prop = sum(p_value < 0.05) / length(p_value)
   ) %>% 
-  ggplot(aes(x = truth, y = reject_prop, fill = truth)) +
-  geom_col() + 
-  xlab("True Value of Beta_1") +
+  ggplot(aes(x = truth, y = reject_prop, color = truth)) +
+  geom_point() + 
+  geom_line() +
+  xlab("True value of Beta_1") +
   ylab("Proportion of times the null was rejected") +
   scale_x_continuous(
     breaks = c(1, 2, 3, 4, 5, 6)
   )
 ```
 
-*Comments: Describe the association between effect size and power.*
+*Comments:* Based on the plot, it can be seen that the power of the test was increased when the effect size increased. More specifically, the power was very small when the true value of $\beta_1$ was less than 2, and the power was large and closed to 1 when the true value of $\beta_1$ was greater than 5.
 
-* Make a plot showing the average estimate of $\hat{\beta_1}$ on the $y$ axis and the true value of $\beta_1$ on the $x$ axis.
+* A plot showing the average estimate of $\hat{\beta_1}$ on the *y* axis and the true value of $\beta_1$ on the *x* axis:
 
 ```{r}
 df_2 %>% 
   group_by(truth) %>% 
   summarize(mean_estimator = mean(estimate)) %>% 
   ggplot(aes(x = truth, y = mean_estimator, fill = truth)) +
-  geom_col() + 
-  xlab("True Value of Beta_1") +
+  geom_col() +
+  xlab("True value of Beta_1") +
   ylab("Average estimate of Beta_1") +
   scale_x_continuous(
     breaks = c(1, 2, 3, 4, 5, 6)
   )
 ```
 
+* A plot showing the average estimate of $\hat{\beta_1}$ on the *y* axis and the true value of $\beta_1$ on the *x* axis only in samples for which the null was rejected:
 
 ```{r}
 df_2 %>% 
@@ -182,11 +201,12 @@ df_2 %>%
   group_by(truth) %>% 
   summarize(mean_estimator = mean(estimate)) %>% 
   ggplot(aes(x = truth, y = mean_estimator, fill = truth)) +
-  geom_col() + 
-  xlab("True Value of Beta_1") +
+  geom_col() +
+  xlab("True value of Beta_1") +
   ylab("Average estimate of Beta_1") +
   scale_x_continuous(
     breaks = c(1, 2, 3, 4, 5, 6)
   )
 ```
 
+*Comments:* Based on the plot, 
