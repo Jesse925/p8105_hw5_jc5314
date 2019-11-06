@@ -123,7 +123,7 @@ generate_df = function(beta_1, generate_xy, n = 30, beta_0 = 2, sigma = sqrt(50)
   
   tibble(
     truth = beta_1,
-    data = rerun(10, generate_xy(beta_1, n, beta_0, sigma)),
+    data = rerun(10000, generate_xy(beta_1, n, beta_0, sigma)),
     model = map(data, ~ broom::tidy(lm(y ~ x, data = .))),
     estimate = map(model, ~ .x[2,2]),
     p_value = map(model, ~ .x[2,5])
@@ -158,10 +158,16 @@ df_2 =
 df_2
 ```
 
+```{r}
+p3_df = rbind(df_1, df_2)
+```
+
+The two datasets were combined into one dataset contains called `p3_df`.
+
 * A plot showing the proportion of times the null was rejected (the power of the test) on the *y* axis and the true value of $\beta_1$ on the *x* axis.
 
 ```{r}
-df_2 %>% 
+p3_df %>% 
   group_by(truth) %>% 
   mutate(
     reject_prop = sum(p_value < 0.05) / length(p_value)
@@ -172,41 +178,46 @@ df_2 %>%
   xlab("True value of Beta_1") +
   ylab("Proportion of times the null was rejected") +
   scale_x_continuous(
-    breaks = c(1, 2, 3, 4, 5, 6)
+    breaks = c(0, 1, 2, 3, 4, 5, 6)
   )
 ```
 
-*Comments:* Based on the plot, it can be seen that the power of the test was increased when the effect size increased. More specifically, the power was very small when the true value of $\beta_1$ was less than 2, and the power was large and closed to 1 when the true value of $\beta_1$ was greater than 5.
+*Comments:* Based on the plot, it can be seen that the power of the test was increased when the effect size increased. More specifically, the powers were very small when the true values of $\beta_1$ were less than 2, and the powers were large and closed to 1 when the true values of $\beta_1$ were greater than 5.
 
 * A plot showing the average estimate of $\hat{\beta_1}$ on the *y* axis and the true value of $\beta_1$ on the *x* axis:
 
 ```{r}
-df_2 %>% 
+plot1 = 
+  p3_df %>% 
   group_by(truth) %>% 
   summarize(mean_estimator = mean(estimate)) %>% 
-  ggplot(aes(x = truth, y = mean_estimator, fill = truth)) +
-  geom_col() +
+  ggplot(aes(x = truth, y = mean_estimator, color = truth)) +
+  geom_point() + 
+  geom_line() +
   xlab("True value of Beta_1") +
   ylab("Average estimate of Beta_1") +
   scale_x_continuous(
-    breaks = c(1, 2, 3, 4, 5, 6)
+    breaks = c(0, 1, 2, 3, 4, 5, 6)
   )
+
+plot1
 ```
 
 * A plot showing the average estimate of $\hat{\beta_1}$ on the *y* axis and the true value of $\beta_1$ on the *x* axis only in samples for which the null was rejected:
 
 ```{r}
-df_2 %>% 
+null_reject_df = 
+  p3_df %>% 
   filter(p_value < 0.05) %>% 
   group_by(truth) %>% 
-  summarize(mean_estimator = mean(estimate)) %>% 
-  ggplot(aes(x = truth, y = mean_estimator, fill = truth)) +
-  geom_col() +
-  xlab("True value of Beta_1") +
-  ylab("Average estimate of Beta_1") +
-  scale_x_continuous(
-    breaks = c(1, 2, 3, 4, 5, 6)
-  )
+  summarize(mean_estimator = mean(estimate)) 
+
+plot2 = 
+  plot1 + 
+  geom_point(data = null_reject_df) +
+  geom_line(data = null_reject_df, color = "red")
+
+plot2
 ```
 
-*Comments:* Based on the plot, 
+*Comments:* From the above plot, we can see that the sample averages of $\hat{\beta_1}$ across tests for which the null was rejected were NOT approximately equal to the true value of $\beta_1$ when 0 < $\beta_1$ < 6. Because for 0 < $\beta_1$ < 6, a $\hat{\beta_1}$ with a value smaller than the true $\beta_1$ will be close to 0 and rise a large p-value. Such an estimator with small value will not be rejected in the test. Thus, when we looking at the samples for which the null was rejected, those small estimators were exexcluded and this made the average value of remaining estimators larger than the true value.0000
